@@ -15,7 +15,6 @@ from anthropic import Anthropic
 from dotenv import load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-load_dotenv(Path.home() / "goldsmith-report" / "config.env", override=False)
 load_dotenv(REPO_ROOT / ".env", override=False)
 
 STATE_FILE = REPO_ROOT / "agents" / ".state.json"

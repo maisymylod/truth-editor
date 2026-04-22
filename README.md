@@ -28,8 +28,7 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-Set `ANTHROPIC_API_KEY` via a local `.env`, or the module will also read
-`~/goldsmith-report/config.env` if present.
+Set `ANTHROPIC_API_KEY` via a local `.env` or the environment.
 
 ## Use
 

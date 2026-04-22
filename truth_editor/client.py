@@ -4,18 +4,12 @@ from pathlib import Path
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
-_SHARED_ENV = Path.home() / "goldsmith-report" / "config.env"
 _LOCAL_ENV = Path(__file__).resolve().parent.parent / ".env"
-
-for path in (_SHARED_ENV, _LOCAL_ENV):
-    if path.exists():
-        load_dotenv(path, override=False)
+if _LOCAL_ENV.exists():
+    load_dotenv(_LOCAL_ENV, override=False)
 
 if not os.environ.get("ANTHROPIC_API_KEY"):
-    raise RuntimeError(
-        "ANTHROPIC_API_KEY not set. Add it to ~/.env, ./.env, "
-        f"or {_SHARED_ENV}."
-    )
+    raise RuntimeError("ANTHROPIC_API_KEY not set. Add it to ./.env or the environment.")
 
 client = Anthropic(max_retries=4)
 
