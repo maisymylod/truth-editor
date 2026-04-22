@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Truth Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #faf8f4;
+    --panel: #fff;
+    --ink: #1a1a1a;
+    --muted: #666;
+    --line: #e5e2da;
+    --ok: #1f7a4a;
+    --bad: #b0341e;
+    --unk: #a67a10;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    margin: 0;
+    padding: 2rem;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-weight: 600; font-size: 1.5rem; margin: 0 0 0.25rem; }
+  .tagline { color: var(--muted); margin: 0 0 1.5rem; }
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    padding: 0.75rem;
+    font: inherit;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    resize: vertical;
+  }
+  .row { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.75rem; }
+  button {
+    background: var(--ink);
+    color: #fff;
+    border: 0;
+    padding: 0.55rem 1.1rem;
+    border-radius: 6px;
+    font: inherit;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  label { color: var(--muted); user-select: none; }
+  .results { margin-top: 2rem; }
+  .claim {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left-width: 4px;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .claim.SUPPORTED { border-left-color: var(--ok); }
+  .claim.CONTRADICTED { border-left-color: var(--bad); }
+  .claim.UNVERIFIED { border-left-color: var(--unk); }
+  .status {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-right: 0.5rem;
+  }
+  .status.SUPPORTED { background: #d9efe1; color: var(--ok); }
+  .status.CONTRADICTED { background: #f5d7d0; color: var(--bad); }
+  .status.UNVERIFIED { background: #f3e6c2; color: var(--unk); }
+  .claim-text { font-weight: 500; }
+  .note { color: var(--muted); font-size: 0.92rem; margin-top: 0.35rem; }
+  .sources { margin-top: 0.35rem; font-size: 0.85rem; }
+  .sources a { color: #3a5a9a; margin-right: 0.75rem; word-break: break-all; }
+  .cleaned {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1rem;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    margin-top: 1rem;
+  }
+  h2 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .loading { color: var(--muted); font-style: italic; }
+  .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Truth Editor</h1>
+  <p class="tagline">Paste LLM output. Each factual claim is extracted and verified against web sources.</p>
+
+  <textarea id="input" placeholder="Paste text to fact-check…"></textarea>
+  <div class="row">
+    <button id="go">Check</button>
+    <label><input type="checkbox" id="rewrite"> Also rewrite with flags</label>
+    <span id="status" class="loading"></span>
+  </div>
+
+  <div class="results" id="results"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function check() {
+  const text = $("input").value.trim();
+  if (!text) return;
+  const rewrite = $("rewrite").checked;
+
+  $("go").disabled = true;
+  $("status").textContent = "Extracting claims and searching the web…";
+  $("results").innerHTML = "";
+
+  try {
+    const r = await fetch("/api/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, rewrite }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    render(data);
+  } catch (e) {
+    $("results").innerHTML = `<div class="err">Error: ${e.message}</div>`;
+  } finally {
+    $("go").disabled = false;
+    $("status").textContent = "";
+  }
+}
+
+function render(data) {
+  const out = [];
+  if (!data.claims.length) {
+    out.push(`<div class="loading">No verifiable factual claims found.</div>`);
+  } else {
+    out.push(`<h2>Claims (${data.claims.length})</h2>`);
+    for (const c of data.claims) {
+      const sources = (c.sources || []).slice(0, 3)
+        .map(s => `<a href="${s}" target="_blank" rel="noopener">${s}</a>`).join("");
+      out.push(`
+        <div class="claim ${c.status}">
+          <span class="status ${c.status}">${c.status}</span>
+          <span class="claim-text">${escapeHtml(c.text)}</span>
+          <div class="note">${escapeHtml(c.note)} · confidence: ${c.confidence}</div>
+          ${sources ? `<div class="sources">${sources}</div>` : ""}
+        </div>`);
+    }
+  }
+  if (data.cleaned) {
+    out.push(`<h2>Rewritten</h2><div class="cleaned">${escapeHtml(data.cleaned)}</div>`);
+  }
+  $("results").innerHTML = out.join("");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+$("go").addEventListener("click", check);
+$("input").addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") check();
+});
+</script>
+</body>
+</html>
