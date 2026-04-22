@@ -1,10 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
+from .client import MAX_INPUT_CHARS
 from .edit import ClaimVerdict, rewrite_text
 from .extract import extract_claims
 from .verify import verify_claim
@@ -26,6 +27,11 @@ def index() -> str:
 
 @app.post("/api/check")
 def check(req: CheckRequest) -> dict:
+    if len(req.text) > MAX_INPUT_CHARS:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Input too long: {len(req.text)} chars (limit {MAX_INPUT_CHARS}).",
+        )
     claims = extract_claims(req.text)
     if not claims:
         return {

@@ -17,6 +17,7 @@ if not os.environ.get("ANTHROPIC_API_KEY"):
         f"or {_SHARED_ENV}."
     )
 
-client = Anthropic()
+client = Anthropic(max_retries=4)
 
-MODEL = "claude-opus-4-7"
+MODEL = os.environ.get("TRUTH_EDITOR_MODEL", "claude-opus-4-7")
+MAX_INPUT_CHARS = int(os.environ.get("TRUTH_EDITOR_MAX_INPUT_CHARS", "20000"))

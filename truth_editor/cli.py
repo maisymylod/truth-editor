@@ -2,6 +2,7 @@ import argparse
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
+from .client import MAX_INPUT_CHARS
 from .edit import ClaimVerdict, build_annotated, rewrite_text
 from .extract import extract_claims
 from .verify import verify_claim
@@ -29,6 +30,13 @@ def main() -> int:
     text = args.text if args.text is not None else sys.stdin.read()
     if not text.strip():
         print("No input text provided.", file=sys.stderr)
+        return 1
+    if len(text) > MAX_INPUT_CHARS:
+        print(
+            f"Input too long: {len(text)} chars (limit {MAX_INPUT_CHARS}). "
+            f"Set TRUTH_EDITOR_MAX_INPUT_CHARS to override.",
+            file=sys.stderr,
+        )
         return 1
 
     print("[1/3] Extracting claims...", file=sys.stderr)

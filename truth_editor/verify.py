@@ -39,9 +39,10 @@ def _extract_json(text: str) -> dict:
     fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if fence:
         return json.loads(fence.group(1))
-    brace = re.search(r"\{.*\}", text, re.DOTALL)
-    if brace:
-        return json.loads(brace.group(0))
+    start = text.find("{")
+    if start >= 0:
+        obj, _ = json.JSONDecoder().raw_decode(text[start:])
+        return obj
     return json.loads(text)
 
 
