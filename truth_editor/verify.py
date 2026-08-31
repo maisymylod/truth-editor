@@ -4,7 +4,7 @@ from typing import List, Literal
 
 from pydantic import BaseModel
 
-from .client import MODEL, client
+from .client import MODEL, get_client
 
 
 class Verdict(BaseModel):
@@ -47,7 +47,7 @@ def _extract_json(text: str) -> dict:
 
 
 def verify_claim(claim: str) -> Verdict:
-    response = client.messages.create(
+    response = get_client().messages.create(
         model=MODEL,
         max_tokens=4096,
         system=VERIFY_SYSTEM,

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from .client import MODEL, client
+from .client import MODEL, get_client
 from .verify import Verdict
 
 
@@ -46,7 +46,7 @@ def rewrite_text(original: str, results: List[ClaimVerdict]) -> str:
         f"- [{cv.verdict.status}] \"{cv.claim}\" — {cv.verdict.note}"
         for cv in results
     )
-    response = client.messages.create(
+    response = get_client().messages.create(
         model=MODEL,
         max_tokens=4096,
         system=REWRITE_SYSTEM,

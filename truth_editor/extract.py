@@ -3,7 +3,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from .client import MODEL, client
+from .client import MODEL, get_client
 
 
 class ClaimList(BaseModel):
@@ -29,7 +29,7 @@ Return a JSON object with a "claims" array of strings. If no verifiable factual 
 
 
 def extract_claims(text: str) -> list[str]:
-    response = client.messages.create(
+    response = get_client().messages.create(
         model=MODEL,
         max_tokens=4096,
         system=EXTRACT_SYSTEM,
